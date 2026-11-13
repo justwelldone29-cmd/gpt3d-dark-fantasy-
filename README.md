@@ -7,6 +7,23 @@
 стандартном x64 выравнивании — **24 байта**. Не включать упаковку в 1 байт.
 Выход — ровно `size` байт, максимум 1 MiB за запрос.
 
+`IOCTL_GET_MODULE_BASE` (функция 0x801, METHOD_BUFFERED, FILE_READ_ACCESS)
+принимает `{ ULONG pid; WCHAR module_name[64]; }` размером 132 байта и
+возвращает `ULONG64` размером 8 байт. Имя — непустая строка с завершающим
+нулём в пределах массива, без пути, например `ntdll.dll`. Сравнение без
+учёта регистра. Оба запроса проверяют `PROCESS_VM_READ` через
+`ZwOpenProcess` с `OBJ_FORCE_ACCESS_CHECK`, затем получают PEPROCESS через
+`PsLookupProcessByProcessId`. ACCESS_DENIED немедленно возвращается клиенту.
+
+Поиск модуля читает PEB, Ldr, элементы InLoadOrderModuleList и строки имён
+через `MmCopyVirtualMemory(..., UserMode, ...)` в пользовательский staging,
+затем под SEH переносит их в локальные структуры ядра. Ограничение обхода
+— 1024 узла; исчерпание возвращает STATUS_RETRY, отсутствие модуля —
+STATUS_NOT_FOUND. WOW64 отклоняется с STATUS_NOT_SUPPORTED. Список не
+блокируется, поэтому при загрузке/выгрузке DLL чтение может завершиться
+ошибкой или вернуть уже устаревшую базу. Клиент командной строки пока
+реализует только IOCTL_DUMP_MEMORY.
+
 ## Сборка
 
 Требуются Windows, Visual Studio C++ Build Tools, совместимые Windows SDK

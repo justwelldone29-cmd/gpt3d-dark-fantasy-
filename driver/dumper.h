@@ -2,6 +2,7 @@
 #include <ntifs.h>
 
 #define IOCTL_DUMP_MEMORY CTL_CODE(FILE_DEVICE_UNKNOWN, 0x800, METHOD_BUFFERED, FILE_READ_ACCESS)
+#define IOCTL_GET_MODULE_BASE CTL_CODE(FILE_DEVICE_UNKNOWN, 0x801, METHOD_BUFFERED, FILE_READ_ACCESS)
 #define DUMPER_MAX_SIZE (1024u * 1024u)
 
 typedef struct _DUMP_REQUEST {
@@ -10,6 +11,12 @@ typedef struct _DUMP_REQUEST {
     ULONG size;
 } DUMP_REQUEST;
 C_ASSERT(sizeof(DUMP_REQUEST) == 24);
+
+typedef struct _MODULE_BASE_REQUEST {
+    ULONG pid;
+    WCHAR module_name[64];
+} MODULE_BASE_REQUEST;
+C_ASSERT(sizeof(MODULE_BASE_REQUEST) == 132);
 
 /* Undocumented export; deliberately isolated for this experiment. */
 NTKERNELAPI NTSTATUS NTAPI MmCopyVirtualMemory(
